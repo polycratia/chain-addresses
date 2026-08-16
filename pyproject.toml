@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chain-addresses"
+version = "0.1.0"
+description = "One interface for deriving deposit addresses across chains, with HD derivation instead of trusting a node's keystore."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "polycratia", email = "hey@polycratia.com" }]
+keywords = ["bitcoin", "ethereum", "hd-wallet", "bip32", "addresses", "deposit"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security :: Cryptography",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/polycratia/chain-addresses"
+Source = "https://github.com/polycratia/chain-addresses"
+Issues = "https://github.com/polycratia/chain-addresses/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chain_addresses"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "README.md", "LICENSE"]

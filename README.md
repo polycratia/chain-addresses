@@ -44,8 +44,13 @@ pip install chain-addresses
 ## Development
 
 ```bash
-pip install -e .
+pip install -e ".[dev]"
+python -m pytest
 ```
+
+The test suite carries its own private-key derivation (CKDpriv) and checks that
+public derivation reaches the same children, so the public-only path is verified
+against the private one it is meant to replace.
 
 ## License
 

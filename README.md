@@ -17,23 +17,38 @@ Nothing in this package accepts or stores a private key, so the process that
 hands out deposit addresses never holds spending authority.
 
 ```python
-from chain_addresses import ExtendedPublicKey
+from chain_addresses import ExtendedPublicKey, get_encoder
 
 account = ExtendedPublicKey.parse(account_xpub)
 deposit = account.derive("0/17")
 
-deposit.public_key.hex()      # compressed point for the address encoder
-deposit.fingerprint.hex()     # HASH160 prefix, useful for audit records
-deposit.serialize()           # the child as its own extended public key
+encoder = get_encoder("bitcoin-p2wpkh")
+encoder.encode(deposit.public_key)   # bc1q...
 ```
 
 Only non-hardened children can be derived from a public key. Passing `"0'/17"`
 or an `xprv` raises instead of silently doing something else.
 
+## Address formats
+
+Every encoder takes a 33-byte compressed public key and returns a string, so
+code that holds an encoder never has to know which chain it is serving.
+
+| Name | Encoding |
+| --- | --- |
+| `bitcoin-p2pkh` | Base58Check, version `0x00` |
+| `bitcoin-p2sh` | Base58Check, version `0x05`, P2WPKH nested in P2SH |
+| `bitcoin-p2wpkh` | bech32, witness version 0 |
+| `bitcoin-p2tr` | bech32m, witness version 1, BIP86 key-path tweak |
+| `bitcoin-testnet-*` | the four above with testnet versions and the `tb` prefix |
+| `evm` | EIP-55 checksummed hex, for any EVM chain |
+
+`ENCODERS` maps each name to its encoder, for offering the list to a user.
+
 ## Status
 
-Pre-alpha. BIP32 public derivation is implemented; the per-chain address
-encoders are not written yet.
+Pre-alpha. BIP32 public derivation and the address formats above are
+implemented; chain metadata and gap-limit scanning are not written yet.
 
 ## Installation
 
@@ -50,7 +65,8 @@ python -m pytest
 
 The test suite carries its own private-key derivation (CKDpriv) and checks that
 public derivation reaches the same children, so the public-only path is verified
-against the private one it is meant to replace.
+against the private one it is meant to replace. Keccak-256 is checked against
+`hashlib.sha3_256` through the one domain byte that separates them.
 
 ## License
 

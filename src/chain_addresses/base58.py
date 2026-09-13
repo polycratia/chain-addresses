@@ -6,10 +6,10 @@ from hashlib import sha256
 
 from .errors import Base58Error
 
-__all__ = ["b58check_decode", "b58check_encode"]
+__all__ = ["ALPHABET", "b58check_decode", "b58check_encode"]
 
-_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-_INDEX = {character: value for value, character in enumerate(_ALPHABET)}
+ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+_INDEX = {character: value for value, character in enumerate(ALPHABET)}
 
 
 def _checksum(payload: bytes) -> bytes:
@@ -24,7 +24,7 @@ def b58check_encode(payload: bytes) -> str:
     digits: list[str] = []
     while number:
         number, remainder = divmod(number, 58)
-        digits.append(_ALPHABET[remainder])
+        digits.append(ALPHABET[remainder])
     digits.append("1" * leading_zeros)
     return "".join(reversed(digits))
 

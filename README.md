@@ -45,10 +45,38 @@ code that holds an encoder never has to know which chain it is serving.
 
 `ENCODERS` maps each name to its encoder, for offering the list to a user.
 
+## Validating an address
+
+An address you did not derive yourself — a withdrawal destination, a value from
+a form — should be checked before anything is sent to it. The failures are not
+interchangeable, so they come back as a typed reason rather than a message:
+
+```python
+from chain_addresses import Reason, validate_address
+
+result = validate_address(destination, network="testnet")
+if not result:
+    if result.reason is Reason.WRONG_NETWORK:
+        ...          # well-formed, but result.network says which chain it is for
+    elif result.reason is Reason.BAD_CHECKSUM:
+        ...          # a typo or a truncated copy, worth asking the user again
+```
+
+A valid result carries the format it recognised (`result.format`, a name from
+the table above) and the network the address belongs to. Encoding is checked
+first, so a corrupted testnet address is a `BAD_CHECKSUM`, not a
+`WRONG_NETWORK`. EIP-55 hex belongs to `Network.ANY` and passes any network
+check, and `formats=` narrows the accepted formats when a flow only serves one.
+
+Validation reaches slightly further than derivation: a version 0, 32-byte
+witness program (P2WSH) is a fine destination and validates as
+`bitcoin-p2wsh`, even though no encoder here produces one.
+
 ## Status
 
-Pre-alpha. BIP32 public derivation and the address formats above are
-implemented; chain metadata and gap-limit scanning are not written yet.
+Pre-alpha. BIP32 public derivation, the address formats above and address
+validation are implemented; chain metadata and gap-limit scanning are not
+written yet.
 
 ## Installation
 

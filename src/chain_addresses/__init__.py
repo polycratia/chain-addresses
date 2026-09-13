@@ -20,6 +20,7 @@ from .errors import (
     DerivationError,
     ExtendedKeyError,
 )
+from .validate import Network, Reason, ValidationResult, validate_address
 
 __version__ = "0.1.0"
 
@@ -35,13 +36,17 @@ __all__ = [
     "ExtendedKeyError",
     "ExtendedPublicKey",
     "HARDENED_OFFSET",
+    "Network",
     "P2PKH",
     "P2SHP2WPKH",
     "P2TR",
     "P2WPKH",
+    "Reason",
+    "ValidationResult",
     "get_encoder",
     "hash160",
     "parse_path",
     "to_checksum_address",
+    "validate_address",
     "__version__",
 ]

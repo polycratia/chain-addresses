@@ -9,6 +9,8 @@ __all__ = [
     "ChainAddressesError",
     "DerivationError",
     "ExtendedKeyError",
+    "GapLimitError",
+    "LedgerError",
 ]
 
 
@@ -34,3 +36,11 @@ class AddressError(ChainAddressesError):
 
 class Bech32Error(AddressError):
     """Raised when a bech32 or bech32m string is malformed or fails its checksum."""
+
+
+class LedgerError(ChainAddressesError):
+    """Raised when address index bookkeeping is asked for an impossible state."""
+
+
+class GapLimitError(LedgerError):
+    """Raised when issuing another address would outrun the wallet's gap limit."""

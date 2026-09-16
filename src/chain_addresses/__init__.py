@@ -19,7 +19,10 @@ from .errors import (
     ChainAddressesError,
     DerivationError,
     ExtendedKeyError,
+    GapLimitError,
+    LedgerError,
 )
+from .gap import DEFAULT_GAP_LIMIT, AddressLedger, DepositAddress
 from .validate import Network, Reason, ValidationResult, validate_address
 
 __version__ = "0.1.0"
@@ -27,15 +30,20 @@ __version__ = "0.1.0"
 __all__ = [
     "AddressEncoder",
     "AddressError",
+    "AddressLedger",
     "Base58Error",
     "Bech32Error",
     "ChainAddressesError",
+    "DEFAULT_GAP_LIMIT",
+    "DepositAddress",
     "DerivationError",
     "ENCODERS",
     "EvmAddress",
     "ExtendedKeyError",
     "ExtendedPublicKey",
+    "GapLimitError",
     "HARDENED_OFFSET",
+    "LedgerError",
     "Network",
     "P2PKH",
     "P2SHP2WPKH",

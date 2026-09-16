@@ -72,11 +72,49 @@ Validation reaches slightly further than derivation: a version 0, 32-byte
 witness program (P2WSH) is a fine destination and validates as
 `bitcoin-p2wsh`, even though no encoder here produces one.
 
+## Index policy
+
+A watching wallet stops scanning after a run of unused addresses — twenty of
+them, by the convention BIP44 fixed. Handing out index 500 while the scanner
+looks twenty ahead does not lose the key, since derivation is deterministic,
+but it does lose the deposit. `AddressLedger` owns that policy: it hands out
+addresses in order and refuses to issue one the scanner would never reach.
+
+```python
+from chain_addresses import AddressLedger, GapLimitError
+
+ledger = AddressLedger(account, "bitcoin-p2wpkh")   # gap limit 20 by default
+
+try:
+    deposit = ledger.issue()       # .index, .path, .address, .public_key
+except GapLimitError:
+    ...          # twenty addresses are already out unused; none may follow
+
+ledger.mark_used(deposit.index)    # a scanner saw a payment: the window moves
+```
+
+`issue()` is the only call that moves the cursor. `peek()` shows the address it
+would return, `address_at(index)` derives any index without bookkeeping,
+`remaining` counts how many addresses may still go out, and `frontier` is the
+first index a conforming scanner would miss.
+
+The state is two integers beside the key they belong to, so a process can stop
+and resume without handing the same address to two customers:
+
+```python
+store.save(ledger.state())         # JSON-safe: account, format, branch, indexes
+ledger = AddressLedger.restore(store.load())
+```
+
+`mark_used` also accepts an index that was never issued — a restore from
+another system, or an address a customer kept — and moves the cursor past it
+rather than handing it out a second time.
+
 ## Status
 
-Pre-alpha. BIP32 public derivation, the address formats above and address
-validation are implemented; chain metadata and gap-limit scanning are not
-written yet.
+Pre-alpha. BIP32 public derivation, the address formats above, address
+validation and the gap-limit index policy are implemented; chain metadata is
+not written yet.
 
 ## Installation
 

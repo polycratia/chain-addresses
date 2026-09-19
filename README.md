@@ -132,7 +132,9 @@ python -m pytest
 The test suite carries its own private-key derivation (CKDpriv) and checks that
 public derivation reaches the same children, so the public-only path is verified
 against the private one it is meant to replace. Keccak-256 is checked against
-`hashlib.sha3_256` through the one domain byte that separates them.
+`hashlib.sha3_256` through the one domain byte that separates them. Published
+vectors from BIP32, BIP84 and EIP-55 live in `tests/test_vectors.py`, so drift
+from the standards fails there before anything else.
 
 ## License
 

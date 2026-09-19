@@ -21,13 +21,6 @@ from chain_addresses.secp256k1 import compress, point_from_scalar
 KEY = compress(point_from_scalar(1))
 KEY_HASH = hash160(KEY)
 
-EIP55 = [
-    "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-    "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359",
-    "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB",
-    "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb",
-]
-
 
 def test_p2pkh_is_a_versioned_key_hash() -> None:
     address = get_encoder("bitcoin-p2pkh").encode(KEY)
@@ -79,12 +72,6 @@ def test_evm_address_of_a_known_key() -> None:
     address = get_encoder("evm").encode(KEY)
     assert address.lower() == "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
     assert to_checksum_address(address) == address
-
-
-@pytest.mark.parametrize("address", EIP55)
-def test_eip55_vectors(address: str) -> None:
-    assert to_checksum_address(address.lower()) == address
-    assert to_checksum_address(address[2:]) == address
 
 
 @pytest.mark.parametrize("address", ["0x", "1234", "0x" + "g" * 40, "0" * 41])

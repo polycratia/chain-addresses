@@ -21,10 +21,23 @@ from typing import Any
 from .addresses import AddressEncoder, get_encoder
 from .bip32 import HARDENED_OFFSET, ExtendedPublicKey
 from .errors import GapLimitError, LedgerError
+from .validate import Network
 
 __all__ = ["DEFAULT_GAP_LIMIT", "AddressLedger", "DepositAddress"]
 
 DEFAULT_GAP_LIMIT = 20
+
+_KEY_NETWORKS: dict[str, Network] = {
+    "xpub": Network.MAINNET,
+    "ypub": Network.MAINNET,
+    "zpub": Network.MAINNET,
+    "tpub": Network.TESTNET,
+    "upub": Network.TESTNET,
+    "vpub": Network.TESTNET,
+}
+
+_TESTNET_PREFIX = "bitcoin-testnet-"
+_BITCOIN_PREFIX = "bitcoin-"
 
 
 @dataclass(frozen=True)
@@ -42,12 +55,34 @@ def _check_index(value: int, label: str) -> None:
         raise LedgerError(f"{label} {value} is outside the non-hardened range")
 
 
+def _encoder_network(name: str) -> Network:
+    if not name.startswith(_BITCOIN_PREFIX):
+        return Network.ANY
+    return Network.TESTNET if name.startswith(_TESTNET_PREFIX) else Network.MAINNET
+
+
+def _check_networks_agree(account: ExtendedPublicKey, encoder: AddressEncoder) -> None:
+    key_network = _KEY_NETWORKS[account.prefix]
+    encoder_network = _encoder_network(encoder.name)
+    if encoder_network is Network.ANY or encoder_network is key_network:
+        return
+    raise LedgerError(
+        f"{account.prefix} is a {key_network.value} key and {encoder.name!r} "
+        f"encodes for {encoder_network.value}; the addresses would be derived "
+        "from a key the signer of that network never scans"
+    )
+
+
 class AddressLedger:
     """Hands out deposit addresses in order, never outrunning the gap limit.
 
     The ledger derives from one branch of an account-level extended public key,
     usually the external chain ``0``. Pass ``branch=None`` when the key given is
     already the branch, as exported by some signers.
+
+    The key prefix and the encoder must agree on network: a ``tpub`` drives only
+    the ``bitcoin-testnet-*`` encoders and an ``xpub`` only the mainnet ones,
+    while ``evm`` takes either.
     """
 
     def __init__(
@@ -70,8 +105,10 @@ class AddressLedger:
                     f"last used index {last_used} is not below the next index "
                     f"{next_index}"
                 )
+        resolved = get_encoder(encoder) if isinstance(encoder, str) else encoder
+        _check_networks_agree(account, resolved)
         self._account = account
-        self._encoder = get_encoder(encoder) if isinstance(encoder, str) else encoder
+        self._encoder = resolved
         self._branch = branch
         self._branch_key = account if branch is None else account.child(branch)
         self._gap_limit = gap_limit

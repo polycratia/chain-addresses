@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -27,6 +28,34 @@ ACCOUNT = ExtendedPublicKey(
     chain_code=bytes(range(32)),
     public_key=compress(point_from_scalar(1)),
 )
+
+VERSIONS = {
+    "xpub": 0x0488B21E,
+    "ypub": 0x049D7CB2,
+    "zpub": 0x04B24746,
+    "tpub": 0x043587CF,
+    "upub": 0x044A5262,
+    "vpub": 0x045F1CF6,
+}
+
+MAINNET_PREFIXES = ["xpub", "ypub", "zpub"]
+TESTNET_PREFIXES = ["tpub", "upub", "vpub"]
+MAINNET_FORMATS = [
+    "bitcoin-p2pkh",
+    "bitcoin-p2sh",
+    "bitcoin-p2wpkh",
+    "bitcoin-p2tr",
+]
+TESTNET_FORMATS = [
+    "bitcoin-testnet-p2pkh",
+    "bitcoin-testnet-p2sh",
+    "bitcoin-testnet-p2wpkh",
+    "bitcoin-testnet-p2tr",
+]
+
+
+def account_with(prefix: str) -> ExtendedPublicKey:
+    return replace(ACCOUNT, version=VERSIONS[prefix])
 
 
 def ledger(**kwargs) -> AddressLedger:
@@ -183,6 +212,71 @@ def test_a_branch_key_can_be_used_directly() -> None:
     deposit = book.issue()
     assert deposit.path == "0"
     assert deposit.address == ledger().address_at(0).address
+
+
+@pytest.mark.parametrize("prefix", TESTNET_PREFIXES)
+@pytest.mark.parametrize("name", MAINNET_FORMATS)
+def test_a_testnet_key_refuses_a_mainnet_encoder(prefix: str, name: str) -> None:
+    with pytest.raises(LedgerError) as caught:
+        AddressLedger(account_with(prefix), name)
+    message = str(caught.value)
+    assert prefix in message
+    assert name in message
+
+
+@pytest.mark.parametrize("prefix", MAINNET_PREFIXES)
+@pytest.mark.parametrize("name", TESTNET_FORMATS)
+def test_a_mainnet_key_refuses_a_testnet_encoder(prefix: str, name: str) -> None:
+    with pytest.raises(LedgerError) as caught:
+        AddressLedger(account_with(prefix), name)
+    message = str(caught.value)
+    assert prefix in message
+    assert name in message
+
+
+def test_the_mismatch_is_caught_before_an_address_is_derived() -> None:
+    with pytest.raises(LedgerError):
+        AddressLedger(account_with("tpub"), get_encoder("bitcoin-p2wpkh"))
+
+
+@pytest.mark.parametrize("prefix", MAINNET_PREFIXES)
+@pytest.mark.parametrize("name", MAINNET_FORMATS)
+def test_a_mainnet_key_accepts_every_mainnet_encoder(prefix: str, name: str) -> None:
+    book = AddressLedger(account_with(prefix), name)
+    assert book.issue().index == 0
+
+
+@pytest.mark.parametrize("prefix", TESTNET_PREFIXES)
+@pytest.mark.parametrize("name", TESTNET_FORMATS)
+def test_a_testnet_key_accepts_every_testnet_encoder(prefix: str, name: str) -> None:
+    book = AddressLedger(account_with(prefix), name)
+    assert book.issue().index == 0
+
+
+@pytest.mark.parametrize("prefix", MAINNET_PREFIXES + TESTNET_PREFIXES)
+def test_evm_takes_a_key_of_either_network(prefix: str) -> None:
+    book = AddressLedger(account_with(prefix), "evm")
+    assert book.issue().address.startswith("0x")
+
+
+def test_restore_refuses_a_mainnet_key_with_a_testnet_format() -> None:
+    state = ledger().state()
+    state["format"] = "bitcoin-testnet-p2wpkh"
+    with pytest.raises(LedgerError) as caught:
+        AddressLedger.restore(state)
+    message = str(caught.value)
+    assert "xpub" in message
+    assert "bitcoin-testnet-p2wpkh" in message
+
+
+def test_restore_refuses_a_testnet_key_with_a_mainnet_format() -> None:
+    state = ledger().state()
+    state["account"] = account_with("tpub").serialize()
+    with pytest.raises(LedgerError) as caught:
+        AddressLedger.restore(state)
+    message = str(caught.value)
+    assert "tpub" in message
+    assert "bitcoin-p2wpkh" in message
 
 
 def test_state_round_trips_through_json_and_continues_where_it_left_off() -> None:

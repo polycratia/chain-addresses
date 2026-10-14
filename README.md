@@ -131,6 +131,13 @@ except GapLimitError:
     ...          # twenty addresses are already out unused; none may follow
 ```
 
+The ledger also refuses a key and an encoder that disagree on network. A
+`tpub`, `upub` or `vpub` drives only the `bitcoin-testnet-*` encoders and an
+`xpub`, `ypub` or `zpub` only the mainnet ones, because a testnet key encoded
+as `bc1` is an address the mainnet signer never scans; `evm` takes either. The
+same check runs on `restore()`, so a state file edited by hand fails when it is
+loaded rather than after a deposit is lost.
+
 `issue()` is the only call that moves the cursor, so an address shown twice on
 a reloaded page should come from `peek()`, and a support tool that inspects an
 index should use `address_at(index)`. `remaining` counts how many addresses may

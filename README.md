@@ -138,6 +138,14 @@ as `bc1` is an address the mainnet signer never scans; `evm` takes either. The
 same check runs on `restore()`, so a state file edited by hand fails when it is
 loaded rather than after a deposit is lost.
 
+It also refuses a key with no hardened step above it: a master key, or — when
+it derives through a branch — an account reached by a non-hardened index. The
+split above only holds if a leak below the key stops there, and a child private
+key under an unhardened parent recovers that parent, so the key held online has
+to sit below a hardened step like `m/84'/0'/0'`. A key passed with
+`branch=None` is already a branch, reached by a non-hardened index by
+construction, so only the master case can be seen from there.
+
 `issue()` is the only call that moves the cursor, so an address shown twice on
 a reloaded page should come from `peek()`, and a support tool that inspects an
 index should use `address_at(index)`. `remaining` counts how many addresses may

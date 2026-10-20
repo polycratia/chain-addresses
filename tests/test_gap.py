@@ -20,14 +20,20 @@ from chain_addresses import (
 )
 from chain_addresses.secp256k1 import compress, point_from_scalar
 
+# Shaped like m/84'/0'/0': depth 3, reached by a hardened index.
 ACCOUNT = ExtendedPublicKey(
     version=0x0488B21E,
-    depth=0,
-    parent_fingerprint=b"\x00\x00\x00\x00",
-    child_number=0,
+    depth=3,
+    parent_fingerprint=b"\x0f\x1e\x2d\x3c",
+    child_number=HARDENED_OFFSET,
     chain_code=bytes(range(32)),
     public_key=compress(point_from_scalar(1)),
 )
+
+MASTER = replace(
+    ACCOUNT, depth=0, parent_fingerprint=b"\x00\x00\x00\x00", child_number=0
+)
+UNHARDENED_ACCOUNT = replace(ACCOUNT, child_number=0)
 
 VERSIONS = {
     "xpub": 0x0488B21E,
@@ -212,6 +218,53 @@ def test_a_branch_key_can_be_used_directly() -> None:
     deposit = book.issue()
     assert deposit.path == "0"
     assert deposit.address == ledger().address_at(0).address
+
+
+def test_a_master_key_is_refused() -> None:
+    with pytest.raises(LedgerError, match="master key"):
+        AddressLedger(MASTER, "bitcoin-p2wpkh")
+
+
+def test_a_master_key_is_refused_as_its_own_branch_too() -> None:
+    with pytest.raises(LedgerError, match="master key"):
+        AddressLedger(MASTER, "bitcoin-p2wpkh", branch=None)
+
+
+def test_an_unhardened_account_step_is_refused() -> None:
+    with pytest.raises(LedgerError, match="hardened") as caught:
+        AddressLedger(UNHARDENED_ACCOUNT, "bitcoin-p2wpkh")
+    assert "depth 3" in str(caught.value)
+
+
+def test_a_branch_key_is_not_judged_by_the_index_above_it() -> None:
+    # A branch is reached by a non-hardened index by construction; the hardened
+    # step sits above the account, which is not visible from a branch key.
+    book = AddressLedger(UNHARDENED_ACCOUNT, "bitcoin-p2wpkh", branch=None)
+    assert book.issue().index == 0
+
+
+def test_a_bip84_account_key_is_accepted() -> None:
+    account = account_with("zpub")
+    book = AddressLedger(account, "bitcoin-p2wpkh")
+    deposit = book.issue()
+    assert deposit.path == "0/0"
+    assert deposit.address == get_encoder("bitcoin-p2wpkh").encode(
+        account.derive("0/0").public_key
+    )
+
+
+def test_restore_refuses_a_master_key() -> None:
+    state = ledger().state()
+    state["account"] = MASTER.serialize()
+    with pytest.raises(LedgerError, match="master key"):
+        AddressLedger.restore(state)
+
+
+def test_restore_refuses_an_unhardened_account_step() -> None:
+    state = ledger().state()
+    state["account"] = UNHARDENED_ACCOUNT.serialize()
+    with pytest.raises(LedgerError, match="hardened"):
+        AddressLedger.restore(state)
 
 
 @pytest.mark.parametrize("prefix", TESTNET_PREFIXES)

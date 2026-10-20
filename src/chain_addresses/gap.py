@@ -73,6 +73,24 @@ def _check_networks_agree(account: ExtendedPublicKey, encoder: AddressEncoder) -
     )
 
 
+def _check_hardened_above(account: ExtendedPublicKey, branch: int | None) -> None:
+    if account.depth == 0:
+        raise LedgerError(
+            "a master key cannot be the key held online: every account under it "
+            "shares its fate, so derive a hardened account such as m/84'/0'/0' "
+            "on the signer and pass that extended public key instead"
+        )
+    # Only a key handed in as an account carries the step that has to be hardened;
+    # a branch key is reached by a non-hardened index by construction.
+    if branch is not None and account.child_number < HARDENED_OFFSET:
+        raise LedgerError(
+            f"the account key at depth {account.depth} was reached by the "
+            f"non-hardened index {account.child_number}; a child private key "
+            "leaked under an unhardened parent recovers that parent, so the step "
+            "above the key held online must be hardened, as in m/84'/0'/0'"
+        )
+
+
 class AddressLedger:
     """Hands out deposit addresses in order, never outrunning the gap limit.
 
@@ -83,6 +101,10 @@ class AddressLedger:
     The key prefix and the encoder must agree on network: a ``tpub`` drives only
     the ``bitcoin-testnet-*`` encoders and an ``xpub`` only the mainnet ones,
     while ``evm`` takes either.
+
+    The key must also sit below a hardened step. A master key is refused, and so
+    is an account reached by a non-hardened index, because a child private key
+    leaked under an unhardened parent recovers that parent.
     """
 
     def __init__(
@@ -107,6 +129,7 @@ class AddressLedger:
                 )
         resolved = get_encoder(encoder) if isinstance(encoder, str) else encoder
         _check_networks_agree(account, resolved)
+        _check_hardened_above(account, branch)
         self._account = account
         self._encoder = resolved
         self._branch = branch

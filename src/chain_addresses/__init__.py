@@ -12,11 +12,13 @@ from .addresses import (
     to_checksum_address,
 )
 from .bip32 import HARDENED_OFFSET, ExtendedPublicKey, hash160, parse_path
+from .chains import CHAINS, ChainInfo, account_path, chain_info, formats_for
 from .errors import (
     AddressError,
     Base58Error,
     Bech32Error,
     ChainAddressesError,
+    ChainError,
     DerivationError,
     ExtendedKeyError,
     GapLimitError,
@@ -33,7 +35,10 @@ __all__ = [
     "AddressLedger",
     "Base58Error",
     "Bech32Error",
+    "CHAINS",
     "ChainAddressesError",
+    "ChainError",
+    "ChainInfo",
     "DEFAULT_GAP_LIMIT",
     "DepositAddress",
     "DerivationError",
@@ -51,6 +56,9 @@ __all__ = [
     "P2WPKH",
     "Reason",
     "ValidationResult",
+    "account_path",
+    "chain_info",
+    "formats_for",
     "get_encoder",
     "hash160",
     "parse_path",

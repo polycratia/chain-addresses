@@ -78,6 +78,44 @@ code that holds an encoder never has to know which chain it is serving.
 
 `ENCODERS` maps each name to its encoder, for offering the list to a user.
 
+## Chains and derivation paths
+
+An encoder name says how an address is written; it does not say where the key
+came from. The two are not independent, because the purpose level of the path
+is what tells a signer which output format an account holds. A key exported
+from `m/44'/0'/0'` is scanned for Base58 addresses, so encoding its children as
+`bc1` produces addresses the wallet behind that account will never look for.
+
+`CHAINS` carries that metadata for every name in `ENCODERS`, so the format a
+caller picks also answers which account to ask the signer for:
+
+```python
+from chain_addresses import account_path, chain_info, formats_for
+
+account_path("bitcoin-testnet-p2wpkh")   # m/84'/1'/0'
+account_path("evm", 2)                   # m/44'/60'/2'
+
+formats_for("bitcoin", "testnet")        # the four testnet names
+chain_info("bitcoin-p2tr").coin_type     # 0
+```
+
+| Name | Purpose | Account path |
+| --- | --- | --- |
+| `bitcoin-p2pkh` | BIP44 | `m/44'/0'/0'` |
+| `bitcoin-p2sh` | BIP49 | `m/49'/0'/0'` |
+| `bitcoin-p2wpkh` | BIP84 | `m/84'/0'/0'` |
+| `bitcoin-p2tr` | BIP86 | `m/86'/0'/0'` |
+| `bitcoin-testnet-*` | the four above | coin type `1` instead of `0` |
+| `evm` | BIP44 | `m/44'/60'/0'` |
+
+The coin type belongs to the network, not to the format: every Bitcoin testnet
+format derives under coin type `1`, which SLIP-44 reserves for test chains, so
+a testnet account never collides with a mainnet one under the same seed.
+
+Only the hardened account prefix is given here. The branch and index below it
+are what `AddressLedger` hands out, and `formats_for` narrows the registry to
+one chain and network when a flow only serves one.
+
 ## Validating an address
 
 An address you did not derive yourself — a withdrawal destination, a value from
@@ -179,9 +217,9 @@ rather than handing it out a second time.
 
 ## Status
 
-Pre-alpha. BIP32 public derivation, the address formats above, address
-validation and the gap-limit index policy are implemented; chain metadata is
-not written yet.
+Pre-alpha. BIP32 public derivation, the address formats above, the chain
+registry, address validation and the gap-limit index policy are implemented.
+Only Bitcoin and the EVM chains are registered so far.
 
 ## Installation
 

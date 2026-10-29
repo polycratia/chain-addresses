@@ -7,6 +7,7 @@ __all__ = [
     "Base58Error",
     "Bech32Error",
     "ChainAddressesError",
+    "ChainError",
     "DerivationError",
     "ExtendedKeyError",
     "GapLimitError",
@@ -36,6 +37,10 @@ class AddressError(ChainAddressesError):
 
 class Bech32Error(AddressError):
     """Raised when a bech32 or bech32m string is malformed or fails its checksum."""
+
+
+class ChainError(ChainAddressesError):
+    """Raised when a chain, an address format or an account index is not in the registry."""
 
 
 class LedgerError(ChainAddressesError):
